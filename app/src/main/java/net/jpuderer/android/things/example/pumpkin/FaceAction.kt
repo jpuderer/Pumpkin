@@ -92,29 +92,8 @@ enum class FaceAction(val frames: List<ActionFrame>,
             ActionFrame(R.drawable.eyes_hearts_02, R.drawable.mouth_default_1,40L),
             ActionFrame(R.drawable.eyes_hearts_01, R.drawable.mouth_default_1,40L)
     ), null, false, false),
-    JOKE(listOf(
-            ActionFrame(R.drawable.eyes_default_00, R.drawable.mouth_default_1,500L),
-            ActionFrame(R.drawable.eyes_joke_01, R.drawable.mouth_default_1,20L),
-            ActionFrame(R.drawable.eyes_joke_02, R.drawable.mouth_default_1,20L),
-            ActionFrame(R.drawable.eyes_joke_03, R.drawable.mouth_default_1,20L),
-            ActionFrame(R.drawable.eyes_joke_04, R.drawable.mouth_default_1,20L),
-            ActionFrame(R.drawable.eyes_joke_05, R.drawable.mouth_default_1,500L),
-            ActionFrame(R.drawable.eyes_joke_09, R.drawable.mouth_default_1,200L),
-            ActionFrame(R.drawable.eyes_joke_05, R.drawable.mouth_default_1,500L),
-            ActionFrame(R.drawable.eyes_joke_09, R.drawable.mouth_default_1,200L),
-            ActionFrame(R.drawable.eyes_joke_05, R.drawable.mouth_default_1,500L),
-            ActionFrame(R.drawable.eyes_joke_06, R.drawable.mouth_default_1,800L),
-            ActionFrame(R.drawable.eyes_joke_07, R.drawable.mouth_default_1,800L),
-            ActionFrame(R.drawable.eyes_joke_09, R.drawable.mouth_default_1,300L),
-            ActionFrame(R.drawable.eyes_joke_07, R.drawable.mouth_default_1,800L),
-            ActionFrame(R.drawable.eyes_joke_09, R.drawable.mouth_default_1,300L),
-            ActionFrame(R.drawable.eyes_joke_07, R.drawable.mouth_default_1,800L),
-            ActionFrame(R.drawable.eyes_joke_08, R.drawable.mouth_default_1,800L),
-            ActionFrame(R.drawable.eyes_joke_07, R.drawable.mouth_default_1,800L),
-            ActionFrame(R.drawable.eyes_joke_08, R.drawable.mouth_default_1,800L),
-            ActionFrame(R.drawable.eyes_joke_07, R.drawable.mouth_default_1,800L)
-    ), null, false, false),
     SPEAKING(listOf(
+            ActionFrame(R.drawable.eyes_default_00, R.drawable.mouth_default_1,20L),
             ActionFrame(R.drawable.eyes_default_00, R.drawable.mouth_default_1,20L),
             ActionFrame(R.drawable.eyes_default_00, R.drawable.mouth_default_2,20L),
             ActionFrame(R.drawable.eyes_default_00, R.drawable.mouth_default_3,20L),
@@ -124,13 +103,14 @@ enum class FaceAction(val frames: List<ActionFrame>,
             ActionFrame(R.drawable.eyes_default_00, R.drawable.mouth_default_7,20L)
     ), null, true, false),
     SPOOKING(listOf(
-            ActionFrame(R.drawable.eyes_default_00, R.drawable.mouth_default_1,20L),
-            ActionFrame(R.drawable.eyes_default_00, R.drawable.mouth_default_2,20L),
-            ActionFrame(R.drawable.eyes_default_00, R.drawable.mouth_default_3,20L),
-            ActionFrame(R.drawable.eyes_default_00, R.drawable.mouth_default_4,20L),
-            ActionFrame(R.drawable.eyes_default_00, R.drawable.mouth_default_5,20L),
-            ActionFrame(R.drawable.eyes_default_00, R.drawable.mouth_default_6,20L),
-            ActionFrame(R.drawable.eyes_default_00, R.drawable.mouth_default_7,20L)
+            ActionFrame(R.drawable.eyes_scary_1, R.drawable.mouth_scary_1,20L),
+            ActionFrame(R.drawable.eyes_scary_1, R.drawable.mouth_scary_1,20L),
+            ActionFrame(R.drawable.eyes_scary_1, R.drawable.mouth_scary_2,20L),
+            ActionFrame(R.drawable.eyes_scary_1, R.drawable.mouth_scary_3,20L),
+            ActionFrame(R.drawable.eyes_scary_1, R.drawable.mouth_scary_4,20L),
+            ActionFrame(R.drawable.eyes_scary_2, R.drawable.mouth_scary_5,20L),
+            ActionFrame(R.drawable.eyes_scary_2, R.drawable.mouth_scary_6,20L),
+            ActionFrame(R.drawable.eyes_scary_2, R.drawable.mouth_scary_7,20L)
     ), null, true, false)
 }
 

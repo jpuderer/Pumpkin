@@ -13,27 +13,32 @@ import java.util.*
 import android.media.AudioManager
 import android.media.SoundPool
 import android.media.AudioAttributes
-import android.media.audiofx.Visualizer
-import kotlin.math.absoluteValue
 import android.hardware.SensorManager
 import com.leinardi.android.things.driver.hcsr04.Hcsr04SensorDriver
 import java.io.IOException
 
 // TODO:
-// -> Animate sounds
+// -> Cylon animation
+// -> Beatrice animation
 
-class MainActivity : Activity(), TextToSpeech.OnInitListener, SensorEventListener {
+class MainActivity : Activity(), TextToSpeech.OnInitListener, SensorEventListener, SoundLevelListener {
     private lateinit var mFace : Face
     private lateinit var mTts : TextToSpeech
+    private lateinit var mSoundLevel: SoundLevel
     private lateinit var mSoundPool : SoundPool
     private lateinit var mSoundPoolIds : List<Int>
-    private lateinit var mVisualizer : Visualizer
     private lateinit var mProximitySensorDriver: Hcsr04SensorDriver
     private lateinit var mSensorManager: SensorManager
     private val mRandom = Random()
 
     // True whenever there is no sound output
     private var silent : Boolean = true
+
+    // Ultrasonic ranging distance (in cm)
+    private var distances = LinkedList(listOf(400f, 400f, 400f, 400f, 400f))
+
+    // Proxmity according to ultrasonic sensor: CLOSE, MEDIUM, FAR
+    private var proximity : Int = PROXIMITY_FAR
 
     // Handler for event loop.  We basically react to stimulus and post things to
     // the loop, and post random events with a delay to the loop, and that pretty
@@ -54,32 +59,39 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener, SensorEventListene
     companion object {
         private val TAG = Face::class.java.simpleName!!
 
-        private val LED_INTENSITY = 1
+        private const val DEBUG = false
+        private const val LED_INTENSITY = 1
 
-        private val VOICE_NAME = "en-us-x-sfg#male_1-local"
+        private const val VOICE_NAME = "en-us-x-sfg#male_1-local"
 
-        private val EVENTLOOP_MSG_STOP = 1
-        private val EVENTLOOP_MSG_RANDOM = 2
-        private val EVENTLOOP_MSG_PROXIMITY = 3
-        private val EVENTLOOP_MSG_NOISY = 4
-        private val EVENTLOOP_MSG_SILENCE = 5
-        private val EVENTLOOP_MSG_VOICE_REC = 6
+        // Schedule a random event according to interval
+        private const val RANDOM_EVENT_INTERVAL : Long = 30000
+
+        private const val EVENTLOOP_MSG_START = 0
+        private const val EVENTLOOP_MSG_RANDOM = 1
+        private const val EVENTLOOP_MSG_PROXIMITY = 2
+        private const val EVENTLOOP_MSG_NOISY = 3
+        private const val EVENTLOOP_MSG_SILENCE = 4
+        private const val EVENTLOOP_MSG_VOICE_REC = 5
+
+        private const val PROXIMITY_FAR = 0
+        private const val PROXIMITY_MEDIUM = 1
+        private const val PROXIMITY_CLOSE = 2
     }
 
     val GREATINGS : List<String> = listOf(
             "Hello",
             "Happy Halloween!",
             "I'm a pumpkin",
-            "So? Anything interesting going on?",
             "Spookey.  It's a talking pumkin",
-            "Hey",
-            "So, what's happening?"
+            "Hey"
     )
 
     // Handy utility function for dumping byte arrays
     fun ByteArray.toHex() = this.joinToString(separator = "") {
         it.toInt().and(0xff).toString(16).padStart(2, '0')
     }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -114,51 +126,8 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener, SensorEventListene
             mSoundPool.load(this, field.getInt(null), 1)
         }
 
-        // Setup audio visualizer callback.  We use this to both animate the faces, and to
-        // figure out when there is active audio output.
-        Log.d(TAG, "Creating visualizer...")
-        mVisualizer = Visualizer(0)
-        mVisualizer.setCaptureSize(Visualizer.getCaptureSizeRange()[0])
-        mVisualizer.setDataCaptureListener(
-                object : Visualizer.OnDataCaptureListener {
-                    var silenceCounter : Int = 0
-
-                    override fun onWaveFormDataCapture(visualizer: Visualizer,
-                                                       bytes: ByteArray, samplingRate: Int) {
-                        val average = bytes.fold(0) { sum, b ->
-                            sum + ((b.toInt() and 0xff) - 0x80).absoluteValue} / bytes.size
-                        Log.d(TAG, "Average: ${average}, Level: ${average / 8}")
-                        val rms = Visualizer.MeasurementPeakRms()
-                        mVisualizer.getMeasurementPeakRms(rms)
-                        Log.d(TAG, "Peak: ${rms.mPeak}, RMS: ${rms.mRms}}")
-                        val level = ((9600 + rms.mRms) / 1200).absoluteValue
-                        Log.d(TAG, "RMS level: ${level}")
-                        mFace.soundLevel = level
-
-                        // Report silence when we've seen no wave for data for a second.
-                        if (silent)  {
-                            if (level != 0) {
-                                silent = false
-                                silenceCounter = 1000 / Visualizer.getMaxCaptureRate()
-                            }
-                        } else {
-                            if (silenceCounter <= 0) {
-                                silent = true
-                                this@MainActivity.onSoundStopped()
-                            } else {
-                                silenceCounter -= 1
-                            }
-                        }
-                    }
-
-                    override fun onFftDataCapture(visualizer: Visualizer,
-                                                  bytes: ByteArray, samplingRate: Int) {
-                        Log.d(TAG, "Got FFT data!")
-                    }
-                }, Visualizer.getMaxCaptureRate(), true, false)
-        mVisualizer.setMeasurementMode(Visualizer.MEASUREMENT_MODE_PEAK_RMS);
-        var status = mVisualizer.setEnabled(true)
-        Log.d(TAG, "mVisualizer.setEnabled: $status")
+        mSoundLevel = SoundLevel(this, this)
+        mSoundLevel.start()
 
         // Start ultrasonic ranging
         mSensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -171,21 +140,65 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener, SensorEventListene
         } catch (e: IOException) {
             Log.e(TAG, "Unable to initialize HC-04 ultrasonic sensor")
         }
+
+        // Start event loop
+        startEventLoop()
+    }
+
+    // Sound level changed
+    var lastSound = 0L;
+    override fun onSoundLevel(level : Int) {
+        mFace.soundLevel = level
+
+        if (level != 0) {
+            lastSound = SystemClock.uptimeMillis()
+            if (silent) {
+                silent = false
+                handler?.sendEmptyMessage(EVENTLOOP_MSG_NOISY)
+            }
+        } else if (!silent) {
+            val delta = SystemClock.uptimeMillis() - lastSound;
+            // Report silence when we've seen no wave for data for a second.
+            if (delta > 1000) {
+                silent = true
+                handler?.sendEmptyMessage(EVENTLOOP_MSG_SILENCE)
+            }
+        }
     }
 
     // Ultrasonic accuracy changed
     override fun onAccuracyChanged(sensor: Sensor?, value: Int) {
-        Log.i(TAG, "Accuracy changed: ${sensor}, ${value}");
+        Log.i(TAG, "Accuracy changed: ${sensor}, ${value}")
     }
 
     // Ultrasonic distance changed
     override fun onSensorChanged(event: SensorEvent?) {
-        Log.i(TAG, "Sensor changed: ${event?.values?.get(0)}")
-    }
+        val value = event?.values?.get(0) ?: 0f
+        if (DEBUG) Log.i(TAG, "Sensor changed: ${value}")
 
-    fun onSoundStopped() {
-        Log.d(TAG, "Sound stopped. Back to idle animation.")
-        mFace.setAction(FaceAction.IDLE)
+        if (value <= 0)
+            return
+
+        // Calculate moving average
+        distances.push(value)
+        distances.removeLast()
+        val distance = distances.average()
+        if (DEBUG) Log.i(TAG, "Moving average: ${distance}")
+
+
+        // There are gaps in the range values for hysteresis
+        val newProximity = when (distance) {
+            in 0..60 -> PROXIMITY_CLOSE
+            in 100..120 -> PROXIMITY_MEDIUM
+            else -> PROXIMITY_FAR
+        }
+
+        // Update the proximity
+        if (proximity != newProximity) {
+            val message = Message.obtain(handler, EVENTLOOP_MSG_PROXIMITY, proximity, newProximity)
+            handler?.sendMessage(message)
+            proximity = newProximity
+        }
     }
 
     override fun onDestroy() {
@@ -200,6 +213,9 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener, SensorEventListene
         } catch (e: IOException) {
             Log.e(TAG, "Error closing HC-04 ultrasonic sensor", e)
         }
+
+        mSoundLevel.stop()
+
         stopEventLoop()
     }
 
@@ -240,20 +256,72 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener, SensorEventListene
                 override fun handleMessage(msg: Message) {
                     super.handleMessage(msg)
 
-                    // TODO: Use a what statement to do something here!!!
+                    when (msg.what) {
+                        EVENTLOOP_MSG_START -> {
+                            // Do Nothing
+                        }
+                        EVENTLOOP_MSG_NOISY -> {
+                            Log.d(TAG, "Things got noisy.")
+                        }
+                        EVENTLOOP_MSG_SILENCE -> {
+                            Log.d(TAG, "Sound stopped. Back to idle animation.")
+                            mFace.setAction(FaceAction.IDLE)
+                        }
+                    }
 
-                    // TODO: Post something random to the handler if there's nothing else scheduled
+                    // Schedule a random event for RANDOM_EVENT_INTERVAL after this event
+                    // Remove any current random events, since we don't want them to happen to
+                    // close together
+                    removeMessages(EVENTLOOP_MSG_RANDOM)
+                    sendEmptyMessageDelayed(EVENTLOOP_MSG_RANDOM, RANDOM_EVENT_INTERVAL)
+
+                    // Don't process the event at all if there is sound still being produced
+                    if (!silent) {
+                        Log.d(TAG, "Ignoring event.  Sound event in progress.")
+                        return
+                    }
+
+                    when (msg.what) {
+                        EVENTLOOP_MSG_RANDOM -> {
+                            Log.d(TAG, "Random event!")
+                            val set = setOf(
+                                    FaceAction.HEARTS,
+                                    FaceAction.SAD,
+                                    FaceAction.SPOOKING,
+                                    FaceAction.SPEAKING)
+                            val action =  set.shuffled().take(1)[0]
+                            when (action) {
+                                FaceAction.SPOOKING -> { soundEffect() }
+                                FaceAction.SPEAKING -> { saySomething() }
+                            }
+                            mFace.setAction(action)
+                        }
+                        EVENTLOOP_MSG_PROXIMITY -> {
+                            Log.d(TAG, "Proximity: ${msg.arg1} --> ${msg.arg2}")
+
+                            // Don't do anything if proximity is decreasing
+                            if (msg.arg2 <= msg.arg1) return;
+
+                            when (proximity) {
+                                PROXIMITY_MEDIUM -> saySomething()
+                            }
+                        }
+                        EVENTLOOP_MSG_VOICE_REC -> {
+                            Log.d(TAG, "Voice recognition")
+                        }
+                        else -> {
+                            Log.d(TAG, "Unknown event: ${msg.what}")
+                        }
+                    }
                 }
             }
         }
 
-        // TODO: Start with a random event.
-        //handler?.sendEmptyMessage(HANDLER_MSG_SHOW)
+        // Start the event loop
+        handler?.sendEmptyMessage(EVENTLOOP_MSG_START)
     }
 
     fun stopEventLoop() {
-        handler?.sendEmptyMessage(EVENTLOOP_MSG_STOP)
-
         handlerThread?.quitSafely()
         handler = null
         handlerThread = null
@@ -269,7 +337,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener, SensorEventListene
         mFace.setAction(action)
     }
 
-    fun sayHello(view : View) {
+    fun saySomething(view : View? = null) {
         // Select a random hello.
         val helloLength = GREATINGS.size
         val hello = GREATINGS[mRandom.nextInt(helloLength)]
@@ -278,11 +346,17 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener, SensorEventListene
         mTts.speak(hello,
                 TextToSpeech.QUEUE_FLUSH, // Drop all pending entries in the playback queue.
                 null, "hello")
+
+        // Needed for fake visualizer
+        mSoundLevel.startSound()
     }
 
-    fun soundEffect(view : View) {
+    fun soundEffect(view: View? = null) {
         mFace.setAction(FaceAction.SPOOKING)
         mSoundPool.play(mRandom.nextInt(mSoundPoolIds.size),
                 1.0f, 1.0f, 1, 0, 1.0f)
+
+        // Needed for fake visualizer
+        mSoundLevel.startSound()
     }
 }

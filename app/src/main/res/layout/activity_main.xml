@@ -38,7 +38,7 @@
             android:text="Hello"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:onClick="sayHello"/>
+            android:onClick="saySomething"/>
         <Button
             android:text="Effect"
             android:layout_width="wrap_content"

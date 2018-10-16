@@ -26,7 +26,7 @@ object BoardDefaults {
         get() {
             when (Build.DEVICE) {
                 DEVICE_RPI3 -> return "SPI0.0"
-                DEVICE_IMX7D_PICO -> return "SPI3.1"
+                DEVICE_IMX7D_PICO -> return "SPI3.0"
                 else -> throw IllegalStateException("Unknown Build.DEVICE " + Build.DEVICE)
             }
         }
