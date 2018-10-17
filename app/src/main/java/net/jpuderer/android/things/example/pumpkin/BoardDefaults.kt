@@ -22,11 +22,20 @@ object BoardDefaults {
     val DEVICE_RPI3 = "rpi3"
     val DEVICE_IMX7D_PICO = "imx7d_pico"
 
-    val spiGpioForLedControl : String
+    val spiGpioForLedEyesControl : String
         get() {
             when (Build.DEVICE) {
                 DEVICE_RPI3 -> return "SPI0.0"
                 DEVICE_IMX7D_PICO -> return "SPI3.0"
+                else -> throw IllegalStateException("Unknown Build.DEVICE " + Build.DEVICE)
+            }
+        }
+
+    val spiGpioForLedMouthControl : String
+        get() {
+            when (Build.DEVICE) {
+                DEVICE_RPI3 -> return "SPI0.1"
+                DEVICE_IMX7D_PICO -> return "SPI3.1"
                 else -> throw IllegalStateException("Unknown Build.DEVICE " + Build.DEVICE)
             }
         }

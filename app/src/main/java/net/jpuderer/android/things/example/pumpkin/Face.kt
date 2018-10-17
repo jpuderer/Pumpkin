@@ -22,7 +22,9 @@ class Face constructor(private val context: Context, private val intensity : Int
         private val HANDLER_MSG_STOP = 2
     }
 
-    private lateinit var ledControl: LedControlLocal
+    private lateinit var mLedEyesControl: LedControlLocal
+    private lateinit var mLedMouthControl: LedControlLocal
+
 
     private var curFrameIdx = 0
     private var action = FaceAction.IDLE
@@ -34,15 +36,22 @@ class Face constructor(private val context: Context, private val intensity : Int
     var soundLevel : Int = 0
 
     private fun initLedControl(clearDisplay : Boolean = true) {
-        for (i in 0..ledControl.deviceCount - 1) {
-            ledControl.setIntensity(i, intensity)
-            ledControl.shutdown(i, false)
-            if (clearDisplay) ledControl.clearDisplay(i)
+        for (i in 0..mLedEyesControl.deviceCount - 1) {
+            mLedEyesControl.setIntensity(i, intensity)
+            mLedEyesControl.shutdown(i, false)
+            if (clearDisplay) mLedEyesControl.clearDisplay(i)
+        }
+        for (i in 0..mLedMouthControl.deviceCount - 1) {
+            mLedMouthControl.setIntensity(i, intensity)
+            mLedMouthControl.shutdown(i, false)
+            if (clearDisplay) mLedMouthControl.clearDisplay(i)
         }
     }
 
     fun start() {
-        ledControl = LedControlLocal(BoardDefaults.spiGpioForLedControl, 8)
+        mLedEyesControl = LedControlLocal(BoardDefaults.spiGpioForLedEyesControl, 2)
+        mLedMouthControl = LedControlLocal(BoardDefaults.spiGpioForLedMouthControl, 4)
+
         initLedControl()
 
         handlerThread = HandlerThread("FrameThread").apply {
@@ -60,8 +69,8 @@ class Face constructor(private val context: Context, private val intensity : Int
                         val eyesBmp = BitmapFactory.decodeResource(context.resources, frame.drawableEyesId)
                         val mouthBmp = BitmapFactory.decodeResource(context.resources, frame.drawableMouthId)
 
-                        drawEyes(eyesBmp)
-                        drawMouth(mouthBmp)
+                        mLedEyesControl.draw(eyesBmp)
+                        mLedMouthControl.draw(mouthBmp)
 
                         if (action.soundDrivenAnimation) {
                             if (soundLevel > curFrameIdx) {
@@ -88,37 +97,10 @@ class Face constructor(private val context: Context, private val intensity : Int
         handler?.sendEmptyMessage(HANDLER_MSG_SHOW)
     }
 
-    private fun drawEyes(bitmap: Bitmap) {
-        val scaled = Bitmap.createScaledBitmap(bitmap, 8 * 4, 8, true)
-        for (row in 0..7) {
-            for (cell in 0..3) {
-                var value = 0
-                for (col in 0..7) {
-                    value = value or if (scaled.getPixel(cell * 8 + col, row) == Color.WHITE) 0x80 shr col else 0
-                }
-                ledControl.setRow(4 - cell - 1, row, value.toByte())
-            }
-        }
-    }
-
-    // Display is chained to eyes, and flipped 180 degrees
-    private fun drawMouth(bitmap: Bitmap) {
-        val scaled = Bitmap.createScaledBitmap(bitmap, 8 * 4, 8, true)
-        for (row in 0..7) {
-            for (cell in 0..3) {
-                var value = 0
-                for (col in 0..7) {
-                    value = value or if (scaled.getPixel((3 - cell) * 8 + (7 - col), 7 - row) ==
-                            Color.WHITE) 0x80 shr col else 0
-                }
-                ledControl.setRow(8 - cell - 1, row, value.toByte())
-            }
-        }
-    }
-
     fun setAction(action: FaceAction) {
         // Reset the LED control, to work around any corruption issues caused by EMI
-        ledControl.reset(false)
+        mLedEyesControl.reset(false)
+        mLedMouthControl.reset(false)
         initLedControl(false)
 
         handler?.removeMessages(HANDLER_MSG_SHOW)
@@ -132,7 +114,8 @@ class Face constructor(private val context: Context, private val intensity : Int
 
         try {
             handlerThread?.quitSafely()
-            ledControl.close()
+            mLedEyesControl.close()
+            mLedMouthControl.close()
         } catch (e: IOException) {
             Log.e(TAG, "Error closing LED matrix", e)
         } finally {

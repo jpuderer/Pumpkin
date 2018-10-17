@@ -66,8 +66,8 @@ public class LedControlLocal implements AutoCloseable {
         PeripheralManager manager = PeripheralManager.getInstance();
         spiDevice = manager.openSpiDevice(spiGpio);
         spiDevice.setMode(SpiDevice.MODE0);
-        spiDevice.setFrequency(100000); // 0.1MHz
-        //spiDevice.setFrequency(1000000); // 1MHz
+        //spiDevice.setFrequency(100000); // 0.1MHz
+        spiDevice.setFrequency(1000000); // 1MHz
         //spiDevice.setFrequency(8000000); // 8MHz
         //spiDevice.setFrequency(16000000); // 16MHz
         spiDevice.setBitsPerWord(8); // 8 BPW
