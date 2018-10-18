@@ -99,9 +99,10 @@ class Face constructor(private val context: Context, private val intensity : Int
 
     fun setAction(action: FaceAction) {
         // Reset the LED control, to work around any corruption issues caused by EMI
-        mLedEyesControl.reset(false)
-        mLedMouthControl.reset(false)
-        initLedControl(false)
+        // FIXME: Remove this?
+        //mLedEyesControl.reset(false)
+        //mLedMouthControl.reset(false)
+        //initLedControl(false)
 
         handler?.removeMessages(HANDLER_MSG_SHOW)
         this@Face.action = action
