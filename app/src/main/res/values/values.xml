@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="greetings">
+        <item>Boo!</item>
+        <item>Tell me your inner most feelings.</item>
+        <item>Whassup?</item>
+        <item>Did I ever tell you about when I was a seed?</item>
+        <item>It\'s all about the candy.</item>
+        <item>What\'s your favourite candy?</item>
+        <item>Do you know if pumpkin are a kind of squash?  Am I a squash?</item>
+        <item>Oh.  Hello.</item>
+        <item>I am programmed to banter pointlessly.</item>
+        <item>My favourite holiday is halloween.</item>
+        <item>I\'m vine, thanks for asking.</item>
+        <item>When is an orange not an orange?  When it\'s a pumpkin.</item>
+        <item>What was the pumpkin\'s favorite sport? Squash.</item>
+        <item>What do you get if you divide the circumference of a pumpkin by it\'s diameter? Pumpkin pi.</item>
+        <item>What\'s black, white, orange and waddles?  A penguin carrying a pumpkin.</item>
+        <item>Why was Cinderella not so good at surfing?  Because her coach was a pumpkin.</item>
+        <item>There\'s pumpkin strange happening around here…</item>
+        <item>Hum hum hum hum hum.</item>
+        <item>Do dah diddly dee.</item>
+        <item>My orders are to pumkinate you.</item>
+        <item>Pumkin protocols engaged.  All systems nominal.</item>
+        <item>Beep beep boop beep.  Very busy right now… doing robot pumpkin things.</item>
+        <item>Ahem.</item>
+        <item>Enjoying yourself?</item>
+        <item>Yes?</item>
+        <item>What is it?</item>
+        <item>Y—uh-huh.</item>
+        <item>I\'m a very busy pumpkin</item>
+        <item>Zug Zug</item>
+        <item>Dabu</item>
+        <item>Lok\'tar</item>
+        <item>You\'re good looking for a human.</item>
+        <item>Do you know who I am?</item>
+        <item>I\'m very busy.</item>
+        <item>Are you still here?</item>
+        <item>Hello</item>
+        <item>Happy Halloween!</item>
+        <item>I\'m a pumpkin</item>
+        <item>Spookey.  It\'s a talking pumkin</item>
+        <item>Hey</item>
+    </array>
+</resources>

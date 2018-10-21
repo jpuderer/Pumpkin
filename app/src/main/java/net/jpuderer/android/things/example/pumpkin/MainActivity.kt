@@ -29,6 +29,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener, SensorEventListene
     private lateinit var mSoundPoolIds : List<Int>
     private lateinit var mProximitySensorDriver: Hcsr04SensorDriver
     private lateinit var mSensorManager: SensorManager
+    private lateinit var mGreetings : Array<String>
     private val mRandom = Random()
 
     // True whenever there is no sound output
@@ -57,7 +58,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener, SensorEventListene
     }
 
     companion object {
-        private val TAG = Face::class.java.simpleName!!
+        private val TAG = "Pumpkin"
 
         private const val DEBUG = false
         private const val LED_INTENSITY = 1
@@ -75,17 +76,8 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener, SensorEventListene
         private const val EVENTLOOP_MSG_VOICE_REC = 5
 
         private const val PROXIMITY_FAR = 0
-        private const val PROXIMITY_MEDIUM = 1
         private const val PROXIMITY_CLOSE = 2
     }
-
-    val GREATINGS : List<String> = listOf(
-            "Hello",
-            "Happy Halloween!",
-            "I'm a pumpkin",
-            "Spookey.  It's a talking pumkin",
-            "Hey"
-    )
 
     // Handy utility function for dumping byte arrays
     fun ByteArray.toHex() = this.joinToString(separator = "") {
@@ -96,6 +88,8 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener, SensorEventListene
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        mGreetings = resources.getStringArray(R.array.greetings);
 
         // Start the face
         mFace = Face(this, LED_INTENSITY)
@@ -188,8 +182,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener, SensorEventListene
 
         // There are gaps in the range values for hysteresis
         val newProximity = when (distance) {
-            in 0..60 -> PROXIMITY_CLOSE
-            in 100..120 -> PROXIMITY_MEDIUM
+            in 0..100 -> PROXIMITY_CLOSE
             else -> PROXIMITY_FAR
         }
 
@@ -282,19 +275,26 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener, SensorEventListene
                     }
 
                     when (msg.what) {
+                        EVENTLOOP_MSG_START,
+                        EVENTLOOP_MSG_NOISY,
+                        EVENTLOOP_MSG_SILENCE -> {
+                            // Already processed
+                        }
                         EVENTLOOP_MSG_RANDOM -> {
                             Log.d(TAG, "Random event!")
-                            val set = setOf(
-                                    FaceAction.HEARTS,
-                                    FaceAction.SAD,
-                                    FaceAction.SPOOKING,
-                                    FaceAction.SPEAKING)
-                            val action =  set.shuffled().take(1)[0]
-                            when (action) {
-                                FaceAction.SPOOKING -> { soundEffect() }
-                                FaceAction.SPEAKING -> { saySomething() }
+                            // Just say something if someone is close
+                            if (proximity == PROXIMITY_CLOSE) {
+                                saySomething()
+                            } else {
+                                val set = setOf(
+                                        FaceAction.HEARTS,
+                                        FaceAction.SPOOKING)
+                                val action = set.shuffled().take(1)[0]
+                                when (action) {
+                                    FaceAction.SPOOKING -> { soundEffect() }
+                                }
+                                mFace.setAction(action)
                             }
-                            mFace.setAction(action)
                         }
                         EVENTLOOP_MSG_PROXIMITY -> {
                             Log.d(TAG, "Proximity: ${msg.arg1} --> ${msg.arg2}")
@@ -303,7 +303,7 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener, SensorEventListene
                             if (msg.arg2 <= msg.arg1) return;
 
                             when (proximity) {
-                                PROXIMITY_MEDIUM -> saySomething()
+                                PROXIMITY_CLOSE -> saySomething()
                             }
                         }
                         EVENTLOOP_MSG_VOICE_REC -> {
@@ -339,8 +339,11 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener, SensorEventListene
 
     fun saySomething(view : View? = null) {
         // Select a random hello.
-        val helloLength = GREATINGS.size
-        val hello = GREATINGS[mRandom.nextInt(helloLength)]
+        val helloLength = mGreetings.size
+        val greatingId = mRandom.nextInt(helloLength)
+        val hello = mGreetings[greatingId]
+
+        Log.d(TAG, "Playing greating id: " + greatingId)
 
         mFace.setAction(FaceAction.SPEAKING)
         mTts.speak(hello,
@@ -353,9 +356,9 @@ class MainActivity : Activity(), TextToSpeech.OnInitListener, SensorEventListene
 
     fun soundEffect(view: View? = null) {
         mFace.setAction(FaceAction.SPOOKING)
-        mSoundPool.play(mRandom.nextInt(mSoundPoolIds.size),
-                1.0f, 1.0f, 1, 0, 1.0f)
-
+        val soundId = mRandom.nextInt(mSoundPoolIds.size + 1)
+        Log.d(TAG, "Playing sound id: " + soundId)
+        mSoundPool.play(soundId, 1.0f, 1.0f, 1, 0, 1.0f)
         // Needed for fake visualizer
         mSoundLevel.startSound()
     }

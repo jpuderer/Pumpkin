@@ -22,8 +22,8 @@ class Face constructor(private val context: Context, private val intensity : Int
         private val HANDLER_MSG_STOP = 2
     }
 
-    private lateinit var mLedEyesControl: LedControlLocal
-    private lateinit var mLedMouthControl: LedControlLocal
+    private lateinit var mLedEyesControl: LedControl
+    private lateinit var mLedMouthControl: LedControl
 
 
     private var curFrameIdx = 0
@@ -49,8 +49,8 @@ class Face constructor(private val context: Context, private val intensity : Int
     }
 
     fun start() {
-        mLedEyesControl = LedControlLocal(BoardDefaults.spiGpioForLedEyesControl, 2)
-        mLedMouthControl = LedControlLocal(BoardDefaults.spiGpioForLedMouthControl, 4)
+        mLedEyesControl = LedControl(BoardDefaults.spiGpioForLedEyesControl, 2)
+        mLedMouthControl = LedControl(BoardDefaults.spiGpioForLedMouthControl, 4)
 
         initLedControl()
 
@@ -98,12 +98,6 @@ class Face constructor(private val context: Context, private val intensity : Int
     }
 
     fun setAction(action: FaceAction) {
-        // Reset the LED control, to work around any corruption issues caused by EMI
-        // FIXME: Remove this?
-        //mLedEyesControl.reset(false)
-        //mLedMouthControl.reset(false)
-        //initLedControl(false)
-
         handler?.removeMessages(HANDLER_MSG_SHOW)
         this@Face.action = action
         curFrameIdx = 0
