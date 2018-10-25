@@ -17,9 +17,6 @@ import android.hardware.SensorManager
 import com.leinardi.android.things.driver.hcsr04.Hcsr04SensorDriver
 import java.io.IOException
 
-// TODO:
-// -> Cylon animation
-// -> Beatrice animation
 
 class MainActivity : Activity(), TextToSpeech.OnInitListener, SensorEventListener, SoundLevelListener {
     private lateinit var mFace : Face
